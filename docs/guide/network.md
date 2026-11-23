@@ -10,6 +10,12 @@ keywords: Clash Mihomo YAML VLESS REALITY ML-KEM SOCKS5 SSH 私钥 住宅 IP DNS
   <figcaption>添加订阅链接与首次主机下载选项。截图版本：0.1.6-alpha-preview（开发构建） · macOS 原生应用 · 2026-11-07。<a href="../../www/public/docs/screenshots/proxy-subscription.jpg" target="_blank" rel="noopener">查看原图（2560 × 1764） ↗</a></figcaption>
 </figure>
 
+## 使用指定网卡出网（Linux）
+
+如果本机网关已经提供固定的公网出口，在「设置 → 网络与代理」中选择「指定网卡出网」。填写网卡名称和允许的公网 IPv4，点击「应用网卡出网」。修改 IP 时，在同一位置重新应用。账号需要选择跟随环境出口。
+
+环境启动时校验出口，运行中发现不匹配时暂停外网。网卡不可用时不切换到其他网卡。出口检查采用定期采样；若每条连接都必须使用固定 IP，请同时在上游网关禁用备用出口。
+
 ## 从本机代理软件导入
 
 首次安装的代理页，以及本机“设置 → 网络与代理”，会自动查找当前用户配置目录里的 Clash Verge Rev、Clash Neo、Clash Party（原 Mihomo Party）、Clash Nyanpasu、Clash Verge、Clash/ClashX、Mihomo、FlClash、SS/SSR 配置，以及 macOS 上的 ClashX Meta（`~/.config/clash.meta`）与 Surge 配置。找到后会显示软件名称、配置名称和可导入节点数。点击“导入此配置”，再在下方选出口、点击“应用代理”。无需启动原软件，也无需填写它的本地端口。

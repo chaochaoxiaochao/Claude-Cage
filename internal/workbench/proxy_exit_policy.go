@@ -17,6 +17,11 @@ func selectProxyExitPolicy(next *managedproxy.Store, previous managedproxy.Store
 	if owned {
 		policies[previous.Selected] = active
 	}
+	if next.WiredActive() && next.Wired != nil {
+		policy := next.Wired.Policy()
+		policies[next.Selected] = policy
+		return policy
+	}
 	if !explicit {
 		return active
 	}
@@ -42,6 +47,9 @@ func (s *Server) saveExitPolicyConfig(cfg cage.Config) error {
 	}
 	p, err := managedproxy.Applied(s.profile, cfg.ProxyURL, cfg.ProxyRevision)
 	if err != nil {
+		return err
+	}
+	if err := p.CheckWiredPolicy(cfg.ExitPolicy); err != nil {
 		return err
 	}
 	if p.ExitPolicies == nil {

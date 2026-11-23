@@ -901,3 +901,35 @@ button.proxy-region-group-header:hover:not(:disabled) {
 .proxy-node-edit > button {
   justify-self: start;
 }
+
+.proxy-wired {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.proxy-wired h4,
+.proxy-wired p {
+  margin: 0;
+}
+.proxy-wired p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+.proxy-wired-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+.proxy-wired-fields label {
+  display: grid;
+  min-width: 145px;
+  flex: 1;
+  gap: 4px;
+}
+.proxy-wired-fields input {
+  width: 100%;
+}

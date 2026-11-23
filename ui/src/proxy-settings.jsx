@@ -70,7 +70,7 @@ const emptyManual = {
   passphrase: "",
   hostKey: "",
 };
-export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializing = false }) {
+export function ProxySettings({ status, onApplied, onConfirm, onDirty, onWiredActive, initializing = false }) {
   const tr = useTranslation();
   const windowVisible = useWindowVisibility();
   const [proxy, setProxy] = useState(null),
@@ -94,6 +94,7 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
     [port, setPort] = useState("17896"),
     [rates, setRates] = useState({ up: 0, down: 0 });
   const [manual, setManual] = useState(emptyManual);
+  const [wiredDraft, setWiredDraft] = useState(null);
   const [routeDraft, setRouteDraft] = useState(null);
   const [hostRefresh, setHostRefresh] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -112,6 +113,7 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
     const value = await api("/proxy");
     if (alive.current) {
       setProxy(value);
+      onWiredActive?.(Boolean(value.wired_active));
       if (!portDirty.current) setPort(String(value.port));
       if (failure && appliedFailure.current === failure && value.network_open) {
         setError((current) => current === failure.message ? "" : current);
@@ -216,7 +218,8 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
       if (alive.current) {
         setForm(null);
         setManual(emptyManual);
-        if (action === "route" || action === "select") setRouteDraft(null);
+        if (["route", "select", "wired"].includes(action)) setRouteDraft(null);
+        if (action === "wired") setWiredDraft(null);
         const importedSource =
           action === "import"
             ? updated.sources.at(-1)
@@ -347,7 +350,9 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
     if (!nodeEdit.id || !nodeEdit.server.trim() || !Number.isInteger(port) || port < 1 || port > 65535) return;
     mutate("edit-node", { id: form.id, node_id: nodeEdit.id, server: nodeEdit.server.trim(), server_port: port });
   };
-  const savedRoute = proxy?.route?.length
+  const wiredActive = Boolean(proxy?.wired_active);
+  const wired = wiredDraft ?? proxy?.wired ?? { interface: "", ip: "" };
+  const savedRoute = wiredActive ? [""] : proxy?.route?.length
     ? proxy.route
     : proxy?.selected
       ? [proxy.selected]
@@ -363,9 +368,9 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
       (manual.sshAuth === "password" ? manual.password : manual.privateKey.includes("PRIVATE KEY"))),
   );
   useEffect(() => {
-    onDirty?.(routeChanged || initializing && Boolean(form));
+    onDirty?.(routeChanged || wiredDraft !== null || initializing && Boolean(form));
     return () => onDirty?.(false);
-  }, [onDirty, routeChanged, initializing, Boolean(form)]);
+  }, [onDirty, routeChanged, wiredDraft, initializing, Boolean(form)]);
   useEffect(() => {
     const el = regionBarRef.current;
     if (!el) { setRegionsOverflow(false); return; }
@@ -457,6 +462,14 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
       </button>
     </div>
   );
+  const applyWired = async () => {
+    if (status.vm_running && !proxy.active && !(await onConfirm({
+      title: "启用内置代理并重启环境？",
+      body: "首次启用或修改代理端口需要重启，当前终端会结束。后续只切换节点会保留终端进程，但网络连接会重新建立。",
+      confirm: "启用并重启",
+    }))) return;
+    await mutate("wired", { interface: wired.interface.trim(), expected_ip: wired.ip.trim() });
+  };
   const openImport = (importMode) => {
     setTab("sources");
     setForm({ ...emptyForm });
@@ -482,6 +495,30 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
         </div>
         {!initializing && <p>{tr("导入具体节点。使用代理链时，在 Cage 中依次选择中转和最终出口。")}</p>}
       </div>
+      {proxy.wired_available && (
+        <section className="proxy-wired" aria-labelledby="proxy-wired-title">
+          <div>
+            <h4 id="proxy-wired-title">{tr("指定网卡出网")}</h4>
+            <p>{tr("不需要代理节点。仅允许所填公网 IPv4；检测到变化后暂停外网。账号须跟随环境出口。")}</p>
+          </div>
+          <div className="proxy-wired-fields">
+            <label>
+              {tr("网卡名称")}
+              <input value={wired.interface} placeholder="eno1" maxLength={15} spellCheck={false}
+                onChange={(event) => setWiredDraft({ ...wired, interface: event.target.value })} />
+            </label>
+            <label>
+              {tr("允许的公网 IPv4")}
+              <input value={wired.ip} placeholder="203.0.113.10" maxLength={15} inputMode="decimal" spellCheck={false}
+                onChange={(event) => setWiredDraft({ ...wired, ip: event.target.value })} />
+            </label>
+            <button type="button" disabled={busy || !proxy.core_available || !wired.interface.trim() || !wired.ip.trim()}
+              onClick={applyWired}>
+              {tr("应用网卡出网")}
+            </button>
+          </div>
+        </section>
+      )}
       {getClientContext().mode === "local" && <LocalConfigImport busy={busy} onImport={id => mutate("import-local", { id })} />}
       {helpOpen && (
         <section
@@ -537,7 +574,7 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
         <Server size={22} />
         <div>
           <strong>
-            {needsMigration ? tr("代理链需要迁移") : selected ? tr("最终出口 · {0}", selected.name) : tr("尚未配置代理节点")}
+            {wiredActive ? tr("指定网卡出网 · {0}", proxy.wired?.interface || "") : needsMigration ? tr("代理链需要迁移") : selected ? tr("最终出口 · {0}", selected.name) : tr("尚未配置代理节点")}
           </strong>
           {needsMigration ? (
             <span className="proxy-current-route">{savedRoute.map(routeName).join(" → ")}</span>
@@ -547,7 +584,7 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
             </span>
           )}
           <span>
-            {needsMigration
+            {wiredActive ? tr("仅允许公网出口 {0}", proxy.wired?.ip || "") : needsMigration
               ? tr("旧配置使用本机代理端口。请导入原代理链中的节点，再按原顺序应用。")
               : active
               ? proxy.running
@@ -574,7 +611,7 @@ export function ProxySettings({ status, onApplied, onConfirm, onDirty, initializ
         </div>
       )}
       <p className="field-help">
-        {tr("仅允许经节点转发的 IPv4 TCP 和 DNS；公网 UDP、IPv6、ICMP 持续阻断。切换会关闭旧网络连接并重新检查出口。")}
+        {wiredActive ? tr("仅通过所选网卡出网。换用代理节点须明确应用新节点。") : tr("仅允许经节点转发的 IPv4 TCP 和 DNS；公网 UDP、IPv6、ICMP 持续阻断。切换会关闭旧网络连接并重新检查出口。")}
       </p>
       <div role="tablist" aria-label={tr("代理管理")} className="proxy-tabs">
         {[

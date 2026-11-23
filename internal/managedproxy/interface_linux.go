@@ -3,6 +3,7 @@ package managedproxy
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 	"strings"
 )
 
-func linuxPhysicalInterface(ctx context.Context) (string, error) {
+func linuxPhysicalInterface(ctx context.Context, pinned string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -24,6 +25,9 @@ func linuxPhysicalInterface(ctx context.Context) (string, error) {
 	}
 	usable := map[string]bool{}
 	for _, iface := range interfaces {
+		if pinned != "" && (iface.Name != pinned || iface.Flags&net.FlagRunning == 0) {
+			continue
+		}
 		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
@@ -38,7 +42,11 @@ func linuxPhysicalInterface(ctx context.Context) (string, error) {
 			}
 		}
 	}
-	return selectLinuxPhysicalInterface(string(routes), usable)
+	name, err := selectLinuxPhysicalInterface(string(routes), usable)
+	if err != nil && pinned != "" {
+		return "", fmt.Errorf("指定网卡 %s 不可用或没有 IPv4 默认路由；不会切换到其他网卡", pinned)
+	}
+	return name, err
 }
 
 // 链路聚合与 VLAN 的最大嵌套层数，同时防止异常的 lower_* 链接成环。

@@ -20,6 +20,7 @@ import (
 
 	"github.com/sylvinus/agent-vm/internal/exitpolicy"
 	"github.com/sylvinus/agent-vm/internal/host"
+	"github.com/sylvinus/agent-vm/internal/netguard"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -52,6 +53,7 @@ type Store struct {
 	Auth         string                       `json:"auth"`
 	Revision     string                       `json:"revision"`
 	Selected     string                       `json:"selected"`
+	Wired        *WiredRoute                  `json:"wired,omitempty"`
 	Chain        []string                     `json:"chain,omitempty"`
 	Sources      []Source                     `json:"sources"`
 	ExitPolicies map[string]exitpolicy.Policy `json:"exit_policies,omitempty"`
@@ -203,6 +205,12 @@ func (s Store) Save(profile string) error {
 }
 func (s Store) Endpoint() string { return fmt.Sprintf("socks5://cage:%s@127.0.0.1:%d", s.Auth, s.Port) }
 func (s Store) Find(id string) (Node, bool) {
+	if id == WiredNodeID {
+		if s.Wired == nil || s.Wired.validate() != nil {
+			return Node{}, false
+		}
+		return Node{ID: id, Name: "指定网卡出网", Type: "direct", Config: map[string]any{"name": id, "type": "direct", "udp": false}}, true
+	}
 	for _, src := range s.Sources {
 		for _, n := range src.Nodes {
 			if n.ID == id {
@@ -320,6 +328,14 @@ func (s Store) Route() ([]string, error) {
 }
 
 func (s Store) route(blocked map[string]string) ([]string, error) {
+	for _, id := range s.Chain {
+		if id == WiredNodeID {
+			return nil, errors.New("指定网卡出网不能用于代理链")
+		}
+	}
+	if s.WiredActive() && len(s.Chain) != 0 {
+		return nil, errors.New("指定网卡出网不能用于代理链")
+	}
 	if _, ok := s.Find(s.Selected); !ok {
 		return nil, errors.New("请先选择有效的最终出口")
 	}
@@ -370,6 +386,12 @@ func (s Store) Runtime(profile string) ([]byte, error) {
 		}
 	}
 	proxies := []map[string]any{}
+	if s.WiredActive() {
+		wired, _ := s.Find(WiredNodeID)
+		proxies = append(proxies, wired.Config)
+		// No imported outbounds or per-account credentials are loaded in this mode.
+		s.Sources = nil
+	}
 	originals := map[string]map[string]any{}
 	for _, src := range s.Sources {
 		for _, n := range src.Nodes {
@@ -442,7 +464,13 @@ func (s Store) Runtime(profile string) ([]byte, error) {
 		return targets[id]
 	}
 	auth := []string{"cage:" + s.Auth}
-	rules := []string{"IN-USER,cage," + Group}
+	var rules []string
+	if s.WiredActive() {
+		for _, prefix := range netguard.NonPublicIPv4Prefixes() {
+			rules = append(rules, "IP-CIDR,"+prefix.String()+",REJECT")
+		}
+	}
+	rules = append(rules, "IN-USER,cage,"+Group)
 	for _, src := range s.Sources {
 		for _, n := range src.Nodes {
 			if blocked[n.ID] != "" {

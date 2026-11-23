@@ -14,6 +14,14 @@ import (
 )
 
 var physicalProxyInterface = managedproxy.PhysicalInterface
+
+func configuredProxyInterface(ctx context.Context, p managedproxy.Store) (string, error) {
+	if name, err := p.PinnedInterface(ctx); name != "" || err != nil {
+		return name, err
+	}
+	return physicalProxyInterface(ctx)
+}
+
 var proxyBindingMatches = managedproxy.BindingMatches
 
 type proxyInterfaceObservation struct {
@@ -48,10 +56,11 @@ func (s *Server) observeProxyInterface(ctx context.Context) proxyInterfaceObserv
 	if errors.Is(observed.bindingErr, managedproxy.ErrLocalProxyNode) {
 		return observed
 	}
-	if s.proxyStore.Applied(s.profile, cfg.ProxyURL, cfg.ProxyRevision) != nil {
+	p, err := managedproxy.Applied(s.profile, cfg.ProxyURL, cfg.ProxyRevision)
+	if err != nil {
 		return proxyInterfaceObservation{}
 	}
-	observed.name, observed.err = physicalProxyInterface(ctx)
+	observed.name, observed.err = configuredProxyInterface(ctx, p)
 	if observed.err == nil && observed.bindingErr == nil && observed.bound == observed.name {
 		observed.bindingMatches = proxyBindingMatches(configPath, observed.name)
 	}

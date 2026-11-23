@@ -69,6 +69,7 @@ func AgentOperations() []AgentOperation {
 	for _, action := range []string{"import", "refresh", "edit", "edit-node", "delete", "select", "route", "restart", "stop"} {
 		post("proxy."+action, "Proxy operation; import creates a source from name plus content (the whole Clash/Mihomo YAML or share links) or url (HTTPS subscription), refresh updates an existing source (a local source needs new content and keeps node IDs by name), edit-node changes server/server_port of a local node only. Read state before retrying. select/route applies the route", "/api/proxy/"+action, proxy)
 	}
+	post("proxy.wired", "Apply a Linux network interface with a required fixed public IPv4; preserve the network gate and do not fall back", "/api/proxy/wired", object(map[string]string{"interface": "string", "expected_ip": "string"}))
 	get("guest.options", "Whether the environment is new, and any installation an earlier version left unfinished", "/api/environment/guest-systems")
 	get("initialization.status", "Read initial setup state; desktop_active indicates desktop first-run onboarding is active", "/api/environment/initialization")
 	post("initialization.set", "action: begin, install, release or complete; release lets the agent start the environment while desktop first-run onboarding is open; complete requires verified readiness", "/api/environment/initialization", object(map[string]string{"action": "string"}))

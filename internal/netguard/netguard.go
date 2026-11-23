@@ -265,3 +265,22 @@ func (p *Policy) Answered(name string, ips []net.IP) {
 		}
 	}
 }
+
+// NonPublicIPv4Prefixes exposes the IPv4 deny ranges for the host proxy's
+// defense-in-depth rules when the upstream connection is direct.
+func NonPublicIPv4Prefixes() []netip.Prefix {
+	prefixes := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),
+		netip.MustParsePrefix("127.0.0.0/8"),
+		netip.MustParsePrefix("169.254.0.0/16"),
+		netip.MustParsePrefix("172.16.0.0/12"),
+		netip.MustParsePrefix("192.168.0.0/16"),
+		netip.MustParsePrefix("224.0.0.0/4"),
+	}
+	for _, prefix := range reserved {
+		if prefix.Addr().Is4() {
+			prefixes = append(prefixes, prefix)
+		}
+	}
+	return prefixes
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/sylvinus/agent-vm/internal/containerenv"
 	"github.com/sylvinus/agent-vm/internal/diagnostics"
 	"github.com/sylvinus/agent-vm/internal/exitpolicy"
+	"github.com/sylvinus/agent-vm/internal/managedproxy"
 	"github.com/sylvinus/agent-vm/internal/paths"
 	"github.com/sylvinus/agent-vm/internal/usererror"
 	"go.yaml.in/yaml/v3"
@@ -181,6 +182,15 @@ func (s *Server) finishLocationProbe(cfg cage.Config, loc Location, probeErr err
 	}
 	observed := loc.exitLocation()
 	state, reason := exitpolicy.CheckExitCountry(loc.IP, &observed)
+	var mismatch error
+	if state == cage.CheckPassed && probeErr == nil && cfg.ExitPolicy.IP == current.ExitPolicy.IP {
+		p, err := managedproxy.Load(s.profile)
+		if err == nil && p.WiredActive() && p.Wired != nil && loc.IP != p.Wired.IP {
+			state = cage.CheckFailed
+			reason = fmt.Sprintf("出口 IP 不匹配：仅允许 %s，检测到 %s；外网保持关闭", p.Wired.IP, loc.IP)
+			mismatch = errors.New(reason)
+		}
+	}
 	s.mu.Lock()
 	// A fresh lookup supersedes any cached result for this address, including
 	// an older non-mainland result followed by a rejection or lookup failure.
@@ -202,7 +212,7 @@ func (s *Server) finishLocationProbe(cfg cage.Config, loc Location, probeErr err
 	}
 	s.mu.Unlock()
 	if !unsafe || !s.vmRunning() {
-		return nil
+		return mismatch
 	}
 	client, err := s.gateClient()
 	if err != nil {
@@ -216,7 +226,7 @@ func (s *Server) finishLocationProbe(cfg cage.Config, loc Location, probeErr err
 	if state == cage.CheckUnknown {
 		s.scheduleNetworkRecovery(closed)
 	}
-	return nil
+	return mismatch
 }
 
 func (s *Server) publishReport(report cage.SafetyReport) {

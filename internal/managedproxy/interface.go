@@ -34,7 +34,7 @@ func PhysicalInterface(ctx context.Context) (string, error) {
 		return windowsPhysicalInterface(ctx)
 	}
 	if runtime.GOOS == "linux" {
-		return linuxPhysicalInterface(ctx)
+		return linuxPhysicalInterface(ctx, "")
 	}
 	if runtime.GOOS != "darwin" {
 		return "", errors.New("物理网卡识别当前支持 macOS")

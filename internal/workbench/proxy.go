@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,8 @@ type proxyInput struct {
 	Port         int      `json:"port"`
 	Server       string   `json:"server"`
 	ServerPort   int      `json:"server_port"`
+	Interface    string   `json:"interface"`
+	ExpectedIP   string   `json:"expected_ip"`
 	// Action may repeat the operation named by the request path, which
 	// scripted callers tend to send (#763); a different value is rejected.
 	Action string `json:"action"`
@@ -128,7 +131,7 @@ func (s *Server) proxyStatus(w http.ResponseWriter, r *http.Request) {
 			state, label = "migration_required", "需要迁移代理节点"
 		}
 	}
-	jsonReply(w, map[string]any{"route": route, "route_error": routeError, "sources": sources, "selected": p.Selected, "port": p.Port, "running": running, "active": active, "state": state, "state_label": label, "network_open": state == "ready", "core_available": coreErr == nil, "core_error": coreError, "version": version.Version, "revision": p.Revision, "bootstrap_dns": strings.Join(p.NodeResolvers(), "、"), "udp_blocked": true, "ipv6_blocked": true})
+	jsonReply(w, map[string]any{"route": route, "route_error": routeError, "wired_available": runtime.GOOS == "linux", "wired_active": p.WiredActive(), "wired": p.Wired, "sources": sources, "selected": p.Selected, "port": p.Port, "running": running, "active": active, "state": state, "state_label": label, "network_open": state == "ready", "core_available": coreErr == nil, "core_error": coreError, "version": version.Version, "revision": p.Revision, "bootstrap_dns": strings.Join(p.NodeResolvers(), "、"), "udp_blocked": true, "ipv6_blocked": true})
 }
 func (s *Server) proxyMutation(w http.ResponseWriter, r *http.Request) {
 	if r.PathValue("action") == "import-local" && !s.requireLocalConfigAccess(w, r) {
@@ -139,7 +142,7 @@ func (s *Server) proxyMutation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	action := r.PathValue("action")
-	allowed := map[string]bool{"import": true, "import-local": true, "refresh": true, "edit": true, "edit-node": true, "delete": true, "select": true, "restart": true, "stop": true, "route": true}
+	allowed := map[string]bool{"import": true, "import-local": true, "refresh": true, "edit": true, "edit-node": true, "delete": true, "select": true, "restart": true, "stop": true, "route": true, "wired": true}
 	if !allowed[action] {
 		http.NotFound(w, r)
 		return
@@ -296,10 +299,21 @@ func (s *Server) changeProxy(action string, in proxyInput, resumeVersion *uint64
 		}
 		return managedproxy.Stop(s.profile)
 	}
+	if action == "wired" {
+		if err := p.SelectWired(ctx, in.Interface, in.ExpectedIP); err != nil {
+			return err
+		}
+		return s.applyProxy(p, cfg, resumeVersion, true)
+	}
 	if action == "select" || action == "restart" || action == "route" {
 		if action == "route" {
 			if len(in.NodeIDs) == 0 {
 				return errors.New("请至少选择一个最终出口")
+			}
+			for _, id := range in.NodeIDs {
+				if id == managedproxy.WiredNodeID {
+					return errors.New("请使用指定网卡出网设置应用有线出口")
+				}
 			}
 			p.Chain = append([]string(nil), in.NodeIDs...)
 			p.Selected = p.Chain[len(p.Chain)-1]
@@ -314,6 +328,9 @@ func (s *Server) changeProxy(action string, in proxyInput, resumeVersion *uint64
 			}
 		}
 		if action == "select" {
+			if in.NodeID == managedproxy.WiredNodeID {
+				return errors.New("请使用指定网卡出网设置应用有线出口")
+			}
 			if _, ok := p.Find(in.NodeID); !ok {
 				return errors.New("所选节点已不存在，请刷新列表")
 			}
@@ -458,7 +475,7 @@ func (s *Server) changeProxy(action string, in proxyInput, resumeVersion *uint64
 			return err
 		}
 		candidate := p
-		if _, ok := candidate.Find(candidate.Selected); !ok || migrating {
+		if _, ok := candidate.Find(candidate.Selected); !ok || migrating || candidate.WiredActive() {
 			// Validate new nodes without switching the saved environment chain.
 			added := p.Sources[len(p.Sources)-1]
 			if index >= 0 && in.ID != "" {

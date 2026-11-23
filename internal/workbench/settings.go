@@ -16,6 +16,7 @@ import (
 	"github.com/sylvinus/agent-vm/internal/cage"
 	"github.com/sylvinus/agent-vm/internal/exitpolicy"
 	"github.com/sylvinus/agent-vm/internal/host"
+	"github.com/sylvinus/agent-vm/internal/managedproxy"
 	"github.com/sylvinus/agent-vm/internal/mobilelink"
 	"github.com/sylvinus/agent-vm/internal/mounts"
 	"github.com/sylvinus/agent-vm/internal/paths"
@@ -232,6 +233,14 @@ func proposedSettings(input Settings, old cage.Config, profile string) (cage.Con
 		input.ExitPolicy = old.ExitPolicy
 	}
 	c := cage.Config{ProxyURL: old.ProxyURL, ProxyRevision: old.ProxyRevision, DNSURL: input.DNSURL, DNS: cage.NewDNSOptions(input.DNSFallbackURLs, input.DNSBootstrapURLs, input.DNSPublicFallback), TLSClientHelloSplit: input.TLSClientHelloSplit, Timezone: input.Timezone, Locale: input.Locale, BrowserLanguage: input.BrowserLanguage, ExitPolicy: input.ExitPolicy.Normalized()}
+	if old.ProxyRevision != "" {
+		p, err := managedproxy.Applied(profile, old.ProxyURL, old.ProxyRevision)
+		if err == nil {
+			if err := p.CheckWiredPolicy(c.ExitPolicy); err != nil {
+				return c, input.Preferences, err
+			}
+		}
+	}
 	if err := c.Validate(); err != nil {
 		return c, input.Preferences, err
 	}

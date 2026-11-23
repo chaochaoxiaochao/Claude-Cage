@@ -3239,5 +3239,13 @@
   "环境内存不足，{0} 已被系统关闭。请在设置中检查计算资源后重新打开。": "Mémoire de l'environnement insuffisante : le système a fermé {0}. Vérifiez les ressources de calcul dans les réglages, puis rouvrez-la.",
   "请先保存应用内的工作。更新会关闭应用，安装官方最新版本后重新打开；登录与设置继续保留。": "Enregistrez d'abord votre travail dans l'application. La mise à jour ferme l'application, installe la dernière version officielle puis la rouvre ; connexion et réglages sont conservés.",
   "请先保存应用内的工作。浏览器和终端会继续运行。": "Enregistrez d'abord votre travail dans l'application. Le navigateur et les terminaux continuent de fonctionner.",
-  "桌面应用": "Application de bureau"
+  "桌面应用": "Application de bureau",
+  "指定网卡出网": "Interface réseau dédiée",
+  "不需要代理节点。仅允许所填公网 IPv4；检测到变化后暂停外网。账号须跟随环境出口。": "Aucun proxy nécessaire. Seule l’adresse IPv4 publique indiquée est autorisée. Si elle change, Internet est suspendu. Le compte doit utiliser la sortie de l’environnement.",
+  "网卡名称": "Nom de l’interface",
+  "允许的公网 IPv4": "IPv4 publique autorisée",
+  "应用网卡出网": "Appliquer l’interface",
+  "指定网卡出网 · {0}": "Interface dédiée · {0}",
+  "仅允许公网出口 {0}": "Seule la sortie {0} est autorisée",
+  "仅通过所选网卡出网。换用代理节点须明确应用新节点。": "Seule l’interface choisie accède à Internet. Pour changer de proxy, appliquez un nouveau nœud."
 }

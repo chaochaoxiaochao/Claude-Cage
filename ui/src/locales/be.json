@@ -3239,5 +3239,13 @@
   "环境内存不足，{0} 已被系统关闭。请在设置中检查计算资源后重新打开。": "У асяроддзі не хапіла памяці, і сістэма закрыла {0}. Праверце вылічальныя рэсурсы ў наладах і адкрыйце зноў.",
   "请先保存应用内的工作。更新会关闭应用，安装官方最新版本后重新打开；登录与设置继续保留。": "Спачатку захавайце працу ў праграме. Абнаўленне закрые праграму, усталюе апошнюю афіцыйную версію і адкрые яе зноў; уваход і налады захаваюцца.",
   "请先保存应用内的工作。浏览器和终端会继续运行。": "Спачатку захавайце працу ў праграме. Браўзер і тэрміналы працягнуць працаваць.",
-  "桌面应用": "Настольная праграма"
+  "桌面应用": "Настольная праграма",
+  "指定网卡出网": "Use a network interface",
+  "不需要代理节点。仅允许所填公网 IPv4；检测到变化后暂停外网。账号须跟随环境出口。": "No proxy node is needed. Only the specified public IPv4 is allowed. Internet access pauses if it changes. Accounts must use the environment route.",
+  "网卡名称": "Interface name",
+  "允许的公网 IPv4": "Allowed public IPv4",
+  "应用网卡出网": "Apply interface",
+  "指定网卡出网 · {0}": "Network interface · {0}",
+  "仅允许公网出口 {0}": "Only allow public exit {0}",
+  "仅通过所选网卡出网。换用代理节点须明确应用新节点。": "Only the selected interface is used. Apply a proxy node explicitly to switch back."
 }

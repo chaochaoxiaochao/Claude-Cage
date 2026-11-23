@@ -29,7 +29,10 @@ func proxyCommand(command, profile string, cfg cage.Config) error {
 	if err != nil {
 		return err
 	}
-	name, err := managedproxy.PhysicalInterface(context.Background())
+	if err = p.CheckWiredPolicy(cfg.ExitPolicy); err != nil {
+		return errors.Join(err, closeManagedGates(profile))
+	}
+	name, err := p.EgressInterface(context.Background())
 	if err != nil {
 		_ = closeManagedGates(profile)
 		return err

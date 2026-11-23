@@ -75,6 +75,7 @@ export function SettingsPanel({
   const [localKeyboard, setLocalKeyboard] = useState(() => clientKeyboard(current.keyboard));
   const [accountDirty, setAccountDirty] = useState(false);
   const [proxyDirty, setProxyDirty] = useState(false);
+  const [wiredActive, setWiredActive] = useState(false);
   const [resourceDirty, setResourceDirty] = useState(false);
   const [draft, setDraft] = useState({ ...current }),
     [section, setSection] = useState(initialSection),
@@ -297,6 +298,7 @@ export function SettingsPanel({
               <>
                 <ProxySettings
                   onDirty={setProxyDirty}
+                  onWiredActive={setWiredActive}
                   status={status}
                   onConfirm={onConfirm}
                   onApplied={async () => {
@@ -332,7 +334,7 @@ export function SettingsPanel({
                     </div>
                   </div>
                 </div>
-                <section className="network-exit-policy" aria-label={tr("IP 变化规则")}>
+                {!wiredActive && <section className="network-exit-policy" aria-label={tr("IP 变化规则")}>
                   <ExitPolicyFields
                     value={draft.exit_policy}
                     onChange={(value) => update("exit_policy", value)}
@@ -341,7 +343,7 @@ export function SettingsPanel({
                     busy={busy}
                     probing={probing}
                   />
-                </section>
+                </section>}
                 <details className="settings-disclosure-card">
                   <summary>
                     <SlidersHorizontal size={15} />

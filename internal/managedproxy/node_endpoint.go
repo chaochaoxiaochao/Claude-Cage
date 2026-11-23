@@ -20,6 +20,9 @@ func (s Store) nodePassword(id string) string {
 // NodeEndpoint uses the same private core as the environment. Each credential
 // matches one outbound node, and cannot select the global proxy group.
 func (s Store) NodeEndpoint(id string) (string, error) {
+	if s.WiredActive() || id == WiredNodeID {
+		return "", errors.New("指定网卡出网时不可使用账号专用代理，请让账号跟随环境出口")
+	}
 	if _, ok := s.Find(id); !ok {
 		return "", errors.New("账号绑定的代理节点已移除，请重新选择")
 	}
