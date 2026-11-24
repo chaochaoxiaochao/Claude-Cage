@@ -18,7 +18,7 @@ func TestWiredCoreKeepsOnlyTheDirectOutbound(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.Selected = WiredNodeID
-	p.Wired = &WiredRoute{Interface: "eno1", IP: "130.12.50.18"}
+	p.Wired = &WiredRoute{Interface: "eno1", IP: "9.9.9.9"}
 	p.GuestDNS = []string{"https://8.8.8.8/dns-query"}
 	data, err := p.Runtime(profile)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestWiredCoreKeepsOnlyTheDirectOutbound(t *testing.T) {
 }
 
 func TestWiredFailsClosedOnUnavailableInterface(t *testing.T) {
-	p := Store{Selected: WiredNodeID, Wired: &WiredRoute{Interface: "cage-not-found", IP: "130.12.50.18"}}
+	p := Store{Selected: WiredNodeID, Wired: &WiredRoute{Interface: "cage-not-found", IP: "9.9.9.9"}}
 	if got, err := p.EgressInterface(context.Background()); got != "" || err == nil {
 		t.Fatalf("missing pinned NIC fell back: %q, %v", got, err)
 	}

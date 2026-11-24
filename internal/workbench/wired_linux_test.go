@@ -19,7 +19,7 @@ func TestWiredUsesExplicitIPAndReportsMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := previous
-	p.Wired = &managedproxy.WiredRoute{Interface: "eno1", IP: "130.12.50.18"}
+	p.Wired = &managedproxy.WiredRoute{Interface: "eno1", IP: "9.9.9.9"}
 	p.Selected = managedproxy.WiredNodeID
 	cfg.ExitPolicy = selectProxyExitPolicy(&p, previous, cage.ExitPolicy{Mode: "dynamic"}, true)
 	if cfg.ExitPolicy.Mode != "static" || cfg.ExitPolicy.IP != p.Wired.IP {

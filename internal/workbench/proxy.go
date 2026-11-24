@@ -169,7 +169,7 @@ func (s *Server) proxyMutation(w http.ResponseWriter, r *http.Request) {
 
 // Every operation that validates or starts the bundled core fails before a job
 // is queued when the core is missing; delete, edit and stop still work.
-var proxyCoreActions = map[string]bool{"import": true, "import-local": true, "refresh": true, "edit-node": true, "select": true, "restart": true, "route": true}
+var proxyCoreActions = map[string]bool{"import": true, "import-local": true, "refresh": true, "edit-node": true, "select": true, "restart": true, "route": true, "wired": true}
 
 // checkProxyInput rejects malformed input synchronously, so API callers get a
 // 4xx instead of an accepted job that fails. Messages already shown by the
