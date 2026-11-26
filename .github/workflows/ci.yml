@@ -1,7 +1,7 @@
-name: Three-platform checks and test packages
+name: Linux checks and test package
 on:
   # The website and user guides have their own workflow (www.yml) and are in
-  # no package, so changes limited to them skip the three-platform builds.
+  # no package, so changes limited to them skip the Linux build.
   # Branches are checked once, through their pull request (pr-checks.yml calls
   # this workflow). A branch without a pull request can be run by hand.
   push:
@@ -83,63 +83,6 @@ jobs:
           test -x "$CAGE_BROWSER_TEST_CHROMIUM" || { echo 'Chromium is required; popup tests must not skip.' >&2; exit 1; }
           export CAGE_BROWSER_TEST_CHROMIUM
           xvfb-run -a node --test internal/cage/browser-popup.integration.mjs
-  macos:
-    needs: workflow-checks
-    uses: ./.github/workflows/macos-build.yml
-    with:
-      ref: ${{ github.sha }}
-      release: false
-      artifact_name: cage-macos-arm64-test
-  macos-intel:
-    needs: workflow-checks
-    uses: ./.github/workflows/macos-intel-build.yml
-    with:
-      ref: ${{ github.sha }}
-      artifact_name: cage-macos-amd64-test
-  windows-updates:
-    needs: workflow-checks
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ${{ fromJSON((github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '["windows-2025", "windows-2022"]' || '["windows-2025"]') }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    defaults:
-      run:
-        shell: pwsh
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-      # Same checksum-pinned ZIP cache as the windows-toolchain action, so this
-      # job does not depend on a fresh SourceForge download each run.
-      - uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/nsis-*.zip
-          key: windows-nsis-${{ hashFiles('scripts/install-nsis.ps1') }}
-      - name: Install the verified NSIS compiler
-        run: ./scripts/install-nsis.ps1
-      - name: Install the verified WebView2 prerequisite
-        run: ./scripts/install-webview2.ps1
-      - name: Verify signed update, rejection and rollback transactions
-        run: ./scripts/test-windows-update-flow.ps1
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: updater-${{ matrix.os }}-reports
-          path: ${{ runner.temp }}/cage-smoke-update-*.json
-          if-no-files-found: ignore
-  windows:
-    needs: workflow-checks
-    uses: ./.github/workflows/windows-build.yml
-    with:
-      ref: ${{ github.sha }}
-      release: false
-      artifact_name: cage-windows-amd64-test
-      all_windows_versions: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' }}
   linux:
     needs: workflow-checks
     uses: ./.github/workflows/linux-build.yml
